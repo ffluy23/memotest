@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Retro Memo Widget</title>
+  <style>
+    :root{
+      --bg: #D4D2F2;
+      --bg2:#A8A6C7;
+      --ink:#2a2840;
+      --card:#ffffff;
+      --shadow:#807EA6;
+      --accent:#807EA6;
+      --accent2:#A8A6C7;
+      --hi:#ffffff;
+      --line: rgba(128,126,166,.35);
+      --radius: 18px;
+      --shadowW: 10px;
+      --borderW: 2px;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      background:
+        radial-gradient(circle at 15% 15%, rgba(255,255,255,.55), transparent 38%),
+        radial-gradient(circle at 80% 25%, rgba(255,255,255,.35), transparent 42%),
+        linear-gradient(135deg, var(--bg), var(--bg2));
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial, sans-serif;
+      color:var(--ink);
+      display:grid;
+      place-items:center;
+      padding:24px;
+    }
+
+    /* --- Widget shell --- */
+    .widget{
+      width:min(920px, 96vw);
+      height:min(640px, 88vh);
+      background:var(--card);
+      border: var(--borderW) solid var(--ink);
+      border-radius: var(--radius);
+      box-shadow: var(--shadowW) var(--shadowW) 0 0 var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+
+    /* retro noise overlay */
+    .widget::after{
+      content:"";
+      position:absolute; inset:0;
+      pointer-events:none;
+      background-image:
+        linear-gradient(rgba(0,0,0,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,.03) 1px, transparent 1px);
+      background-size: 6px 6px, 6px 6px;
+      mix-blend-mode:multiply;
+      opacity:.22;
+    }
+
+    /* --- Top bar --- */
+    .topbar{
+      position:relative;
+      z-index:1;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:14px 16px;
+      background: linear-gradient(90deg, var(--bg), #ffffff);
+      border-bottom: var(--borderW) solid var(--ink);
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width: 180px;
+    }
+
+    .logo{
+      width:34px; height:34px;
+      border: var(--borderW) solid var(--ink);
+      border-radius: 10px;
+      background: conic-gradient(from 180deg, #ffffff, var(--bg), #ffffff, var(--bg2));
+      box-shadow: 4px 4px 0 0 var(--shadow);
+      position:relative;
+    }
+    .logo::before{
+      content:"";
+      position:absolute; inset:7px;
+      border: var(--borderW) solid var(--ink);
+      border-radius: 8px;
+      background:#fff;
+    }
+
+    .title{
+      line-height:1.05;
+      font-weight:900;
+      letter-spacing:-0.4px;
+      text-transform:uppercase;
+    }
+    .title small{
+      display:block;
+      font-weight:800;
+      opacity:.75;
+      font-size:12px;
+      letter-spacing:0.2px;
+    }
+
+    .controls{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex:1;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+    }
+
+    .pill{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 12px;
+      border: var(--borderW) solid var(--ink);
+      border-radius: 999px;
+      background:#fff;
+      box-shadow: 6px 6px 0 0 var(--shadow);
+    }
+
+    .pill input{
+      border:none;
+      outline:none;
+      font-size:14px;
+      width: 220px;
+      background:transparent;
+      color:var(--ink);
+    }
+
+    .btn{
+      border: var(--borderW) solid var(--ink);
+      border-radius: 999px;
+      padding:10px 12px;
+      background: var(--bg);
+      box-shadow: 6px 6px 0 0 var(--shadow);
+      font-weight:900;
+      cursor:pointer;
+      user-select:none;
+      transition: transform .06s ease;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      color:var(--ink);
+    }
+    .btn:active{ transform: translate(2px,2px); box-shadow: 4px 4px 0 0 var(--shadow); }
+    .btn.secondary{ background:#fff; }
+    .btn.danger{ background:#fff; border-style:dashed; }
+
+    .kbd{
+      font-size:12px;
+      padding:2px 8px;
+      border:1px solid var(--ink);
+      border-radius:8px;
+      background:#fff;
+      opacity:.85;
+      font-weight:800;
+    }
+
+    /* --- Main area --- */
+    .main{
+      position:relative;
+      z-index:1;
+      height: calc(100% - 66px);
+      display:grid;
+      grid-template-columns: 260px 1fr;
+      background:
+        linear-gradient(0deg, rgba(168,166,199,.18), rgba(168,166,199,.18)),
+        repeating-linear-gradient(
+          0deg,
+          rgba(0,0,0,.05) 0px,
+          rgba(0,0,0,.05) 1px,
+          transparent 1px,
+          transparent 28px
+        );
+    }
+
+    /* --- Sidebar --- */
+    .sidebar{
+      border-right: var(--borderW) solid var(--ink);
+      padding:14px;
+      background: linear-gradient(180deg, rgba(255,255,255,.65), rgba(255,255,255,.9));
+      overflow:auto;
+    }
+
+    .panel{
+      border: var(--borderW) solid var(--ink);
+      border-radius: 16px;
+      background:#fff;
+      box-shadow: 8px 8px 0 0 var(--shadow);
+      padding:12px;
+      margin-bottom:14px;
+    }
+    .panel h3{
+      margin:0 0 10px;
+      font-size:14px;
+      letter-spacing:.3px;
+      text-transform:uppercase;
+      font-weight:1000;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .tag{
+      font-size:12px;
+      border:1px solid var(--ink);
+      border-radius:999px;
+      padding:2px 8px;
+      background: var(--bg);
+      font-weight:900;
+    }
+
+    .list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .noteItem{
+      border: var(--borderW) solid var(--ink);
+      border-radius: 14px;
+      padding:10px 10px;
+      background: #fff;
+      box-shadow: 6px 6px 0 0 var(--shadow);
+      cursor:pointer;
+      transition: transform .06s ease;
+      position:relative;
+    }
+    .noteItem:hover{ transform: translate(-1px,-1px); }
+    .noteItem.active{
+      background: linear-gradient(135deg, #fff, rgba(212,210,242,.9));
+      outline: 3px solid rgba(128,126,166,.25);
+    }
+
+    .noteItem .row{
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .noteItem .dot{
+      width:10px;height:10px;border-radius:50%;
+      border:1px solid var(--ink);
+      background: var(--bg);
+      flex:0 0 auto;
+    }
+    .noteItem .name{
+      font-weight:1000;
+      font-size:13px;
+      line-height:1.2;
+      flex:1;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .noteItem .meta{
+      margin-top:6px;
+      font-size:12px;
+      opacity:.75;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .pinBadge{
+      position:absolute;
+      right:10px;
+      top:10px;
+      font-size:12px;
+      border:1px solid var(--ink);
+      border-radius:999px;
+      padding:1px 6px;
+      background:#fff;
+      box-shadow: 3px 3px 0 0 var(--shadow);
+      display:none;
+      font-weight:900;
+    }
+    .noteItem.pinned .pinBadge{ display:inline-block; }
+
+    /* --- Editor --- */
+    .editor{
+      padding:14px;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .paper{
+      flex:1;
+      border: var(--borderW) solid var(--ink);
+      border-radius: 18px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,255,255,1)),
+        repeating-linear-gradient(
+          0deg,
+          rgba(128,126,166,.18) 0px,
+          rgba(128,126,166,.18) 1px,
+          transparent 1px,
+          transparent 28px
+        );
+      box-shadow: 10px 10px 0 0 var(--shadow);
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      position:relative;
+    }
+
+    .paperTop{
+      padding:12px 12px;
+      background: linear-gradient(90deg, rgba(212,210,242,.95), #fff);
+      border-bottom: var(--borderW) solid var(--ink);
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .field{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      border: var(--borderW) solid var(--ink);
+      border-radius: 999px;
+      background:#fff;
+      box-shadow: 6px 6px 0 0 var(--shadow);
+      flex:1;
+      min-width: 220px;
+    }
+    .field input{
+      width:100%;
+      border:none; outline:none;
+      font-weight:1000;
+      letter-spacing:-0.2px;
+      background:transparent;
+      color:var(--ink);
+    }
+
+    .paperBtns{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    textarea{
+      border:none;
+      outline:none;
+      resize:none;
+      padding:14px 14px 22px;
+      background:transparent;
+      font-size:15px;
+      line-height:1.85;
+      height:100%;
+      color:var(--ink);
+    }
+
+    .statusbar{
+      border-top: var(--borderW) solid var(--ink);
+      padding:10px 12px;
+      background: rgba(255,255,255,.85);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      font-size:12px;
+      opacity:.9;
+    }
+
+    .toast{
+      position:absolute;
+      left:14px;
+      bottom:14px;
+      z-index:3;
+      border: var(--borderW) solid var(--ink);
+      border-radius: 999px;
+      padding:10px 12px;
+      background:#fff;
+      box-shadow: 8px 8px 0 0 var(--shadow);
+      font-weight:900;
+      transform: translateY(10px);
+      opacity:0;
+      pointer-events:none;
+      transition: all .18s ease;
+    }
+    .toast.show{
+      opacity:1;
+      transform: translateY(0);
+    }
+
+    /* drag hint */
+    .dragHint{
+      font-size:12px;
+      opacity:.75;
+      font-weight:900;
+      padding:2px 8px;
+      border:1px dashed var(--ink);
+      border-radius:999px;
+      background: rgba(255,255,255,.6);
+    }
+
+    @media (max-width: 860px){
+      .main{ grid-template-columns: 1fr; }
+      .sidebar{ display:none; }
+      .brand{ min-width:auto; }
+      .pill input{ width: 160px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="widget" id="widget">
+    <div class="topbar" id="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div class="title">
+          RETRO MEMO
+          <small>kitsch widget • local save</small>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="pill" title="검색">
+          <span style="font-weight:1000;">🔎</span>
+          <input id="search" placeholder="검색 (제목/내용)" />
+        </div>
+        <button class="btn" id="addBtn" title="새 메모 (Ctrl/⌘ + N)">
+          ➕ 새 메모 <span class="kbd">Ctrl N</span>
+        </button>
+        <button class="btn secondary" id="resetBtn" title="전체 초기화(되돌릴 수 없음)">
+          🧹 리셋
+        </button>
+        <span class="dragHint" title="상단바 드래그로 이동 가능">↕︎ 드래그 이동</span>
+      </div>
+    </div>
+
+    <div class="main">
+      <aside class="sidebar">
+        <div class="panel">
+          <h3>
+            NOTES
+            <span class="tag" id="countTag">0</span>
+          </h3>
+          <div class="list" id="noteList"></div>
+        </div>
+
+        <div class="panel">
+          <h3>SHORTCUTS</h3>
+          <div style="font-size:13px; line-height:1.7;">
+            <div>새 메모: <b>Ctrl/⌘ + N</b></div>
+            <div>저장: <b>Ctrl/⌘ + S</b></div>
+            <div>핀: <b>Ctrl/⌘ + P</b></div>
+            <div>삭제: <b>Delete</b></div>
+          </div>
+        </div>
+      </aside>
+
+      <section class="editor">
+        <div class="paper">
+          <div class="paperTop">
+            <div class="field">
+              <span style="font-weight:1000;">🗒️</span>
+              <input id="title" placeholder="제목" />
+            </div>
+            <div class="paperBtns">
+              <button class="btn secondary" id="pinBtn" title="핀 고정 (Ctrl/⌘+P)">📌 핀</button>
+              <button class="btn" id="saveBtn" title="저장 (Ctrl/⌘+S)">💾 저장</button>
+              <button class="btn danger" id="delBtn" title="삭제 (Delete)">🗑️ 삭제</button>
+            </div>
+          </div>
+
+          <textarea id="content" placeholder="여기에 메모를 써봐… (자동 저장은 저장 버튼/단축키로!)"></textarea>
+
+          <div class="statusbar">
+            <div id="statusLeft">선택된 메모 없음</div>
+            <div id="statusRight">0 chars</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="toast" id="toast">저장 완료!</div>
+  </div>
+
+  <script>
+    // --------- tiny util ---------
+    const $ = (s, p=document) => p.querySelector(s);
+    const $$ = (s, p=document) => [...p.querySelectorAll(s)];
+    const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
+
+    // --------- state ---------
+    const KEY = "retro_memo_widget_v1";
+    let state = {
+      notes: [],
+      activeId: null,
+      widgetPos: { x: null, y: null } // draggable widget position
+    };
+
+    function load(){
+      try{
+        const raw = localStorage.getItem(KEY);
+        if(raw){
+          state = JSON.parse(raw);
+        }
+      }catch(e){}
+      if(!state.notes?.length){
+        const starter = {
+          id: uid(),
+          title: "레트로 메모장 ✨",
+          content: "키치한 느낌으로 만들었어.\n- 상단바 드래그로 이동\n- Ctrl/⌘+S 저장\n- Ctrl/⌘+N 새 메모\n- Ctrl/⌘+P 핀\n\n색감: #D4D2F2 계열 + 진한 노블러 그림자!",
+          pinned: true,
+          updatedAt: Date.now()
+        };
+        state.notes = [starter];
+        state.activeId = starter.id;
+      } else if(!state.activeId){
+        state.activeId = state.notes[0].id;
+      }
+      applyWidgetPos();
+      save(false);
+    }
+
+    function save(showToast=true){
+      localStorage.setItem(KEY, JSON.stringify(state));
+      if(showToast) toast("저장 완료!");
+      renderList();
+      renderEditor();
+    }
+
+    function resetAll(){
+      localStorage.removeItem(KEY);
+      state = { notes: [], activeId: null, widgetPos:{x:null,y:null} };
+      load();
+      renderAll();
+      toast("리셋 완료!");
+    }
+
+    // --------- rendering ---------
+    function fmtTime(ts){
+      const d = new Date(ts);
+      const pad = n => String(n).padStart(2,"0");
+      return `${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function getActive(){
+      return state.notes.find(n => n.id === state.activeId) || null;
+    }
+
+    function renderList(){
+      const list = $("#noteList");
+      const q = ($("#search").value || "").trim().toLowerCase();
+
+      let notes = [...state.notes];
+      // pinned first, then updatedAt desc
+      notes.sort((a,b) => (b.pinned - a.pinned) || (b.updatedAt - a.updatedAt));
+
+      if(q){
+        notes = notes.filter(n =>
+          (n.title || "").toLowerCase().includes(q) ||
+          (n.content || "").toLowerCase().includes(q)
+        );
+      }
+
+      $("#countTag").textContent = notes.length;
+
+      list.innerHTML = "";
+      notes.forEach(n => {
+        const el = document.createElement("div");
+        el.className = "noteItem" + (n.id === state.activeId ? " active" : "") + (n.pinned ? " pinned" : "");
+        el.innerHTML = `
+          <div class="pinBadge">PIN</div>
+          <div class="row">
+            <div class="dot"></div>
+            <div class="name">${escapeHtml(n.title || "제목 없음")}</div>
+          </div>
+          <div class="meta">
+            <span>${n.pinned ? "📌 고정" : "🗂️ 일반"}</span>
+            <span>${fmtTime(n.updatedAt)}</span>
+          </div>
+        `;
+        el.addEventListener("click", () => {
+          state.activeId = n.id;
+          renderAll();
+        });
+        list.appendChild(el);
+      });
+    }
+
+    function renderEditor(){
+      const n = getActive();
+      const title = $("#title");
+      const content = $("#content");
+      const pinBtn = $("#pinBtn");
+
+      if(!n){
+        title.value = "";
+        content.value = "";
+        title.disabled = true;
+        content.disabled = true;
+        $("#statusLeft").textContent = "선택된 메모 없음";
+        $("#statusRight").textContent = "0 chars";
+        pinBtn.textContent = "📌 핀";
+        return;
+      }
+
+      title.disabled = false;
+      content.disabled = false;
+
+      title.value = n.title || "";
+      content.value = n.content || "";
+
+      pinBtn.textContent = n.pinned ? "📍 핀 해제" : "📌 핀";
+      $("#statusLeft").textContent = `${n.pinned ? "📌 " : ""}${fmtTime(n.updatedAt)} 업데이트`;
+      $("#statusRight").textContent = `${(n.content||"").length} chars`;
+    }
+
+    function renderAll(){
+      renderList();
+      renderEditor();
+    }
+
+    // --------- actions ---------
+    function addNote(){
+      const note = {
+        id: uid(),
+        title: "새 메모",
+        content: "",
+        pinned: false,
+        updatedAt: Date.now()
+      };
+      state.notes.push(note);
+      state.activeId = note.id;
+      save();
+      $("#title").focus();
+      $("#title").select();
+    }
+
+    function deleteActive(){
+      const n = getActive();
+      if(!n) return;
+      const ok = confirm(`"${n.title || "제목 없음"}" 메모 삭제할까?`);
+      if(!ok) return;
+
+      state.notes = state.notes.filter(x => x.id !== n.id);
+      state.activeId = state.notes[0]?.id || null;
+      save();
+      toast("삭제 완료!");
+    }
+
+    function togglePin(){
+      const n = getActive();
+      if(!n) return;
+      n.pinned = !n.pinned;
+      n.updatedAt = Date.now();
+      save();
+      toast(n.pinned ? "핀 고정!" : "핀 해제!");
+    }
+
+    function commitEdits(){
+      const n = getActive();
+      if(!n) return;
+      n.title = $("#title").value.trim() || "제목 없음";
+      n.content = $("#content").value;
+      n.updatedAt = Date.now();
+      save();
+    }
+
+    // --------- toast ---------
+    let toastTimer = null;
+    function toast(msg){
+      const t = $("#toast");
+      t.textContent = msg;
+      t.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(()=> t.classList.remove("show"), 1100);
+    }
+
+    // --------- escape html for list titles ---------
+    function escapeHtml(str){
+      return String(str)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    // --------- draggable widget (topbar drag) ---------
+    const widget = $("#widget");
+    const topbar = $("#topbar");
+
+    function applyWidgetPos(){
+      const {x,y} = state.widgetPos || {};
+      if(x == null || y == null) return;
+      widget.style.position = "fixed";
+      widget.style.left = x + "px";
+      widget.style.top = y + "px";
+    }
+
+    let dragging = false;
+    let start = {mx:0,my:0, wx:0, wy:0};
+
+    topbar.addEventListener("mousedown", (e)=>{
+      // ignore clicks on inputs/buttons
+      if(e.target.closest("button") || e.target.closest("input")) return;
+      dragging = true;
+      widget.style.position = "fixed";
+      const rect = widget.getBoundingClientRect();
+      start = { mx:e.clientX, my:e.clientY, wx:rect.left, wy:rect.top };
+      document.body.style.userSelect = "none";
+    });
+
+    window.addEventListener("mousemove", (e)=>{
+      if(!dragging) return;
+      const dx = e.clientX - start.mx;
+      const dy = e.clientY - start.my;
+      const x = Math.max(8, Math.min(window.innerWidth - widget.offsetWidth - 8, start.wx + dx));
+      const y = Math.max(8, Math.min(window.innerHeight - widget.offsetHeight - 8, start.wy + dy));
+      widget.style.left = x + "px";
+      widget.style.top = y + "px";
+    });
+
+    window.addEventListener("mouseup", ()=>{
+      if(!dragging) return;
+      dragging = false;
+      document.body.style.userSelect = "";
+      const rect = widget.getBoundingClientRect();
+      state.widgetPos = { x: Math.round(rect.left), y: Math.round(rect.top) };
+      save(false);
+      toast("위치 저장!");
+    });
+
+    // touch support
+    topbar.addEventListener("touchstart", (e)=>{
+      if(e.target.closest("button") || e.target.closest("input")) return;
+      const t = e.touches[0];
+      dragging = true;
+      widget.style.position = "fixed";
+      const rect = widget.getBoundingClientRect();
+      start = { mx:t.clientX, my:t.clientY, wx:rect.left, wy:rect.top };
+    }, {passive:true});
+
+    window.addEventListener("touchmove", (e)=>{
+      if(!dragging) return;
+      const t = e.touches[0];
+      const dx = t.clientX - start.mx;
+      const dy = t.clientY - start.my;
+      const x = Math.max(8, Math.min(window.innerWidth - widget.offsetWidth - 8, start.wx + dx));
+      const y = Math.max(8, Math.min(window.innerHeight - widget.offsetHeight - 8, start.wy + dy));
+      widget.style.left = x + "px";
+      widget.style.top = y + "px";
+    }, {passive:true});
+
+    window.addEventListener("touchend", ()=>{
+      if(!dragging) return;
+      dragging = false;
+      const rect = widget.getBoundingClientRect();
+      state.widgetPos = { x: Math.round(rect.left), y: Math.round(rect.top) };
+      save(false);
+      toast("위치 저장!");
+    });
+
+    // --------- events ---------
+    $("#addBtn").addEventListener("click", addNote);
+    $("#saveBtn").addEventListener("click", commitEdits);
+    $("#delBtn").addEventListener("click", deleteActive);
+    $("#pinBtn").addEventListener("click", togglePin);
+    $("#resetBtn").addEventListener("click", resetAll);
+
+    $("#search").addEventListener("input", renderList);
+
+    // live status char count while typing
+    $("#content").addEventListener("input", ()=>{
+      $("#statusRight").textContent = `${($("#content").value||"").length} chars`;
+    });
+
+    // shortcuts
+    window.addEventListener("keydown", (e)=>{
+      const mod = e.ctrlKey || e.metaKey;
+      if(mod && e.key.toLowerCase() === "n"){
+        e.preventDefault(); addNote();
+      }
+      if(mod && e.key.toLowerCase() === "s"){
+        e.preventDefault(); commitEdits();
+      }
+      if(mod && e.key.toLowerCase() === "p"){
+        e.preventDefault(); togglePin();
+      }
+      if(e.key === "Delete"){
+        // only if not typing in input/textarea selection?
+        const ae = document.activeElement;
+        if(ae && (ae.tagName === "TEXTAREA" || ae.tagName === "INPUT")) return;
+        deleteActive();
+      }
+    });
+
+    // boot
+    load();
+    renderAll();
+  </script>
+</body>
+</html>
